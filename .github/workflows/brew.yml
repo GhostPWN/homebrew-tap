@@ -13,9 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Tap from the checkout rather than `brew tap GhostPWN/tap`: that clones
-      # over unauthenticated https and fails while this repo is private, and it
-      # would test the pushed tap instead of the commit under test.
+      # Tap from the checkout so pull requests test their own commit rather
+      # than whatever is already on main. The published job covers the command
+      # users actually run.
       - name: Tap from this checkout
         run: |
           tap_dir="$(brew --repository)/Library/Taps/ghostpwn/homebrew-tap"
@@ -39,3 +39,21 @@ jobs:
 
       - name: Test
         run: brew test ghostpwn/tap/ghostpwn
+
+  published:
+    # The command the README tells users to run, against the live tap.
+    if: github.ref == 'refs/heads/main'
+    needs: formula
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - name: brew install GhostPWN/tap/ghostpwn
+        run: brew install GhostPWN/tap/ghostpwn
+
+      - name: Verify installed version matches the formula
+        run: |
+          expected="$(brew info --json=v2 GhostPWN/tap/ghostpwn | jq -r '.formulae[0].versions.stable')"
+          actual="$(ghostpwn --version)"
+          echo "formula: $expected"
+          echo "binary:  $actual"
+          test "$actual" = "ghostpwn $expected"
