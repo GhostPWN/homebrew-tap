@@ -1,0 +1,32 @@
+name: brew
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  formula:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - name: Tap
+        run: brew tap GhostPWN/tap
+
+      - name: Audit
+        run: brew audit --strict GhostPWN/tap/ghostpwn
+
+      - name: Install
+        run: brew install GhostPWN/tap/ghostpwn
+
+      - name: Verify installed version matches the formula
+        run: |
+          expected="$(brew info --json=v2 GhostPWN/tap/ghostpwn | jq -r '.formulae[0].versions.stable')"
+          actual="$(ghostpwn --version)"
+          echo "formula: $expected"
+          echo "binary:  $actual"
+          test "$actual" = "ghostpwn $expected"
+
+      - name: Test
+        run: brew test GhostPWN/tap/ghostpwn
