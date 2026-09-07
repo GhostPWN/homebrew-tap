@@ -11,22 +11,31 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
-      - name: Tap
-        run: brew tap GhostPWN/tap
+      - uses: actions/checkout@v4
+
+      # Tap from the checkout rather than `brew tap GhostPWN/tap`: that clones
+      # over unauthenticated https and fails while this repo is private, and it
+      # would test the pushed tap instead of the commit under test.
+      - name: Tap from this checkout
+        run: |
+          tap_dir="$(brew --repository)/Library/Taps/ghostpwn/homebrew-tap"
+          mkdir -p "$(dirname "$tap_dir")"
+          cp -R "$GITHUB_WORKSPACE" "$tap_dir"
+          brew tap
 
       - name: Audit
-        run: brew audit --strict GhostPWN/tap/ghostpwn
+        run: brew audit --strict ghostpwn/tap/ghostpwn
 
       - name: Install
-        run: brew install GhostPWN/tap/ghostpwn
+        run: brew install ghostpwn/tap/ghostpwn
 
       - name: Verify installed version matches the formula
         run: |
-          expected="$(brew info --json=v2 GhostPWN/tap/ghostpwn | jq -r '.formulae[0].versions.stable')"
+          expected="$(brew info --json=v2 ghostpwn/tap/ghostpwn | jq -r '.formulae[0].versions.stable')"
           actual="$(ghostpwn --version)"
           echo "formula: $expected"
           echo "binary:  $actual"
           test "$actual" = "ghostpwn $expected"
 
       - name: Test
-        run: brew test GhostPWN/tap/ghostpwn
+        run: brew test ghostpwn/tap/ghostpwn
