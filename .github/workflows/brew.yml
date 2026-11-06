@@ -23,6 +23,12 @@ jobs:
           cp -R "$GITHUB_WORKSPACE" "$tap_dir"
           brew tap
 
+      # Homebrew 6 loads non-official tap code only after explicit trust. A
+      # fully qualified install trusts its formula, but audit does not, so trust
+      # only this formula, as Homebrew's tap trust docs advise for automation.
+      - name: Trust the formula
+        run: brew trust --formula ghostpwn/tap/ghostpwn
+
       - name: Audit
         run: brew audit --strict ghostpwn/tap/ghostpwn
 
